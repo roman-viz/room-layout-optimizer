@@ -1,12 +1,19 @@
 import { expect, test, type Page } from '@playwright/test'
 
 function roomCanvasTransform(bounds: { width: number; height: number }, widthCm = 520, depthCm = 390) {
-  const reservedBottom = Math.min(220, bounds.height * 0.38)
+  const isMobileCanvas = bounds.width <= 500
+  const isWideDesktopCanvas = !isMobileCanvas && bounds.width >= 1000
+  const summaryInset = isWideDesktopCanvas ? Math.min(280, bounds.width * 0.32) : 0
+  const reservedBottom = isMobileCanvas || !isWideDesktopCanvas
+    ? Math.min(220, bounds.height * 0.38)
+    : 0
   const availableHeight = bounds.height - reservedBottom
-  const scale = Math.min((bounds.width - 148) / widthCm, (availableHeight - 148) / depthCm)
+  const padding = isMobileCanvas ? 74 : isWideDesktopCanvas ? 88 : 52
+  const availableWidth = bounds.width - summaryInset
+  const scale = Math.min((availableWidth - padding * 2) / widthCm, (availableHeight - padding * 2) / depthCm)
   return {
     scale,
-    offsetX: (bounds.width - widthCm * scale) / 2,
+    offsetX: summaryInset + (availableWidth - widthCm * scale) / 2,
     offsetY: (availableHeight - depthCm * scale) / 2,
   }
 }
@@ -154,6 +161,28 @@ test('moves furniture by dragging, undoes the move, and edits its properties', a
   await expect(page.getByRole('heading', { name: 'Room', exact: true })).toBeVisible()
 })
 
+test('keeps a dragged furniture item inside the room walls', async ({ page }) => {
+  await page.goto('/')
+  const canvas = page.locator('canvas')
+  const bounds = await canvas.boundingBox()
+  if (!bounds) throw new Error('Canvas did not have a bounding box')
+
+  const { scale, offsetX, offsetY } = roomCanvasTransform(bounds)
+  const start = {
+    x: bounds.x + offsetX + 210 * scale,
+    y: bounds.y + offsetY + 190 * scale,
+  }
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(bounds.x + offsetX + 800 * scale, start.y, { steps: 8 })
+  await page.mouse.up()
+
+  const furniture = await page.evaluate(() => JSON.parse(localStorage.getItem('roomform-project') ?? '{}').state.furniture)
+  const bed = furniture.find((item: { id: string }) => item.id === 'bed-main')
+  expect(bed.position.x + bed.widthCm / 2).toBeLessThanOrEqual(520)
+  expect(bed.position.x).toBeCloseTo(440, 0)
+})
+
 test('saves furniture names when the input loses focus', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Add furniture' }).first().click()
@@ -174,6 +203,29 @@ test('saves furniture names when the input loses focus', async ({ page }) => {
     return project.state?.furniture?.find((item: { name: string }) => item.name === 'Reading sofa')?.name
   })
   expect(storedName).toBe('Reading sofa')
+})
+
+test('applies inspector edits live without losing input focus', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Add furniture' }).first().click()
+  await page.getByRole('menuitem', { name: /Sofa/ }).click()
+  const rotation = page.getByRole('spinbutton', { name: 'Rotation in degrees' })
+  await rotation.click()
+  await rotation.press('ArrowUp')
+  await rotation.press('ArrowUp')
+  await rotation.fill('45')
+  await expect(rotation).toBeFocused()
+  await expect.poll(() => page.evaluate(() => {
+    const project = JSON.parse(localStorage.getItem('roomform-project') ?? '{}')
+    return project.state?.furniture?.at(-1)?.rotationDeg
+  })).toBe(45)
+  const width = page.getByRole('spinbutton', { name: 'Width in cm' }).first()
+  await width.fill('123')
+  await expect(width).toBeFocused()
+  await expect.poll(() => page.evaluate(() => {
+    const project = JSON.parse(localStorage.getItem('roomform-project') ?? '{}')
+    return project.state?.furniture?.at(-1)?.widthCm
+  })).toBe(123)
 })
 
 test('adds furniture from the library, saves it across reload, and works on mobile', async ({ page }) => {
@@ -663,6 +715,16 @@ test('adds doors and restriction zones, then exports and imports a project', asy
   await page.getByRole('option', { name: 'Forbidden' }).click()
   await page.getByRole('button', { name: 'Add restriction zone' }).click()
   await expect(page.getByRole('heading', { name: 'Restriction zone' })).toBeVisible()
+  await expect(page.locator('.canvas-toolbar .validation-badge')).toHaveCount(0)
+  const placementIssues = page.getByRole('status', { name: 'Placement issues' })
+  await expect(placementIssues).toBeVisible()
+  await expect(placementIssues).toContainText('Inside forbidden zone')
+  await expect(page.locator('.right-panel .validation-list')).toHaveCount(0)
+  await placementIssues.getByRole('button', { name: /Placement issues/ }).click()
+  await expect(placementIssues.getByRole('button')).toHaveAttribute('aria-expanded', 'false')
+  await expect(placementIssues).not.toContainText('Inside forbidden zone')
+  await placementIssues.getByRole('button').click()
+  await expect(placementIssues).toContainText('Inside forbidden zone')
   const zoneWidth = page.getByRole('spinbutton', { name: 'Width in cm' })
   await zoneWidth.fill('160')
   await openRoomInspector(page)
@@ -740,7 +802,13 @@ test('zooms, resets the canvas view, and resizes furniture with a handle', async
   const { scale, offsetX, offsetY } = roomCanvasTransform(bounds)
   const dimensionsBounds = await page.locator('.canvas-room-summary').boundingBox()
   expect(dimensionsBounds).not.toBeNull()
-  expect(bounds.y + offsetY + 390 * scale).toBeLessThan(dimensionsBounds!.y)
+  expect(520 * scale).toBeGreaterThan(bounds.width * 0.4)
+  const roomLeft = bounds.x + offsetX
+  if (bounds.width >= 1000) {
+    expect(roomLeft).toBeGreaterThanOrEqual(dimensionsBounds!.x + dimensionsBounds!.width)
+  } else {
+    expect(bounds.y + offsetY + 390 * scale).toBeLessThan(dimensionsBounds!.y)
+  }
   const center = { x: bounds.x + offsetX + 210 * scale, y: bounds.y + offsetY + 190 * scale }
   await page.mouse.click(center.x, center.y)
   await expect(page.getByRole('heading', { name: 'Furniture' })).toBeVisible()

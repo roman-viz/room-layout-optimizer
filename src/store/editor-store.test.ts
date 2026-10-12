@@ -54,6 +54,12 @@ describe('editor state', () => {
     expect(useEditorStore.getState().furniture[0].position).toEqual({ x: 150, y: 150 })
   })
 
+  it('keeps the complete furniture footprint inside the room when moved', () => {
+    useEditorStore.getState().moveFurniture('test-chair', { x: 600, y: 150 })
+
+    expect(useEditorStore.getState().furniture[0].position).toEqual({ x: 495, y: 150 })
+  })
+
   it('renames and resizes a room while retaining its geometry model', () => {
     useEditorStore.getState().updateRoom({ name: 'Studio', widthCm: 600 })
     const room = useEditorStore.getState().room

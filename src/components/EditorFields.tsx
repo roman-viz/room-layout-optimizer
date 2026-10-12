@@ -41,6 +41,13 @@ export function NumberField({
     }
   }
   const commitRef = useRef(commit)
+  const applyLive = (raw: string) => {
+    const converted = unitRef.current === 'cm' ? Number(raw) : Number(raw) * 100
+    if (raw.trim() && Number.isFinite(converted) && converted >= minRef.current && converted !== committedRef.current) {
+      committedRef.current = converted
+      onCommitRef.current(converted)
+    }
+  }
 
   useEffect(() => {
     onCommitRef.current = onCommit
@@ -81,6 +88,7 @@ export function NumberField({
           onChange={(event) => {
             draftRef.current = event.target.value
             setDraft(event.target.value)
+            applyLive(event.target.value)
           }}
           onBlur={(event) => {
             draftRef.current = event.currentTarget.value
@@ -120,6 +128,16 @@ export function DoorAngleField({ value, max, onCommit }: { value: number; max: n
     }
   }
   const commitRef = useRef(commit)
+  const applyLive = (raw: string) => {
+    const angle = Number(raw)
+    if (raw.trim() && Number.isFinite(angle)) {
+      const live = Math.max(0, Math.min(maxRef.current, angle))
+      if (live !== committedRef.current) {
+        committedRef.current = live
+        onCommitRef.current(live)
+      }
+    }
+  }
   useEffect(() => {
     maxRef.current = max
     onCommitRef.current = onCommit
@@ -159,6 +177,7 @@ export function DoorAngleField({ value, max, onCommit }: { value: number; max: n
           onChange={(event) => {
             draftRef.current = event.target.value
             setDraft(event.target.value)
+            applyLive(event.target.value)
           }}
           onBlur={(event) => {
             draftRef.current = event.currentTarget.value
@@ -194,6 +213,13 @@ export function TextField({ label, value, onCommit }: { label: string; value: st
     }
   }
   const commitRef = useRef(commit)
+  const applyLive = (raw: string) => {
+    const trimmed = raw.trim()
+    if (trimmed && trimmed !== committedRef.current) {
+      committedRef.current = trimmed
+      onCommitRef.current(trimmed)
+    }
+  }
   useEffect(() => {
     onCommitRef.current = onCommit
   }, [onCommit])
@@ -226,6 +252,7 @@ export function TextField({ label, value, onCommit }: { label: string; value: st
         onChange={(event) => {
           draftRef.current = event.target.value
           setDraft(event.target.value)
+          applyLive(event.target.value)
         }}
         onBlur={(event) => {
           draftRef.current = event.currentTarget.value
@@ -262,6 +289,16 @@ export function AngleField({ value, disabled, onCommit }: { value: number; disab
     }
   }
   const commitRef = useRef(commit)
+  const applyLive = (raw: string) => {
+    const angle = Number(raw)
+    if (raw.trim() && Number.isFinite(angle)) {
+      const live = ((angle % 360) + 360) % 360
+      if (live !== committedRef.current) {
+        committedRef.current = live
+        onCommitRef.current(live)
+      }
+    }
+  }
   useEffect(() => {
     onCommitRef.current = onCommit
   }, [onCommit])
@@ -297,6 +334,7 @@ export function AngleField({ value, disabled, onCommit }: { value: number; disab
           onChange={(event) => {
             draftRef.current = event.target.value
             setDraft(event.target.value)
+            applyLive(event.target.value)
           }}
           onBlur={(event) => {
             draftRef.current = event.currentTarget.value

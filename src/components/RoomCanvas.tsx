@@ -3,6 +3,7 @@ import { fitBounds, worldToCanvas, type ViewTransform } from '../domain/coordina
 import { roomBoundaryToPolygon } from '../domain/geometry'
 import { doorSwingGeometry, openingGeometry, openingPlacementNearPoint } from '../domain/openings'
 import { pointInPolygonInclusive } from '../domain/polygon'
+import { clampFurniturePositionToRoom } from '../domain/furniture-placement'
 import { validateLayout, violationsByItem } from '../domain/validation'
 import { moveCorner as moveRoomCorner } from '../domain/rooms'
 import type { FurnitureItem, Point, Room, WallOpening } from '../domain/models'
@@ -245,8 +246,22 @@ export function RoomCanvas({
     context.fillStyle = palette.canvas
     context.fillRect(0, 0, bounds.width, bounds.height)
 
-    const summaryClearance = Math.min(220, bounds.height * 0.38)
-    const base = fitBounds(room.widthCm, room.depthCm, bounds.width, bounds.height, 74, summaryClearance)
+    const isMobileCanvas = window.matchMedia('(max-width: 760px)').matches
+    const isWideDesktopCanvas = !isMobileCanvas && bounds.width >= 1000
+    const padding = isMobileCanvas ? 74 : isWideDesktopCanvas ? 88 : 52
+    const summaryClearance = isMobileCanvas || !isWideDesktopCanvas
+      ? Math.min(220, bounds.height * 0.38)
+      : 0
+    const summaryInset = isWideDesktopCanvas ? Math.min(280, bounds.width * 0.32) : 0
+    const base = fitBounds(
+      room.widthCm,
+      room.depthCm,
+      bounds.width - summaryInset,
+      bounds.height,
+      padding,
+      summaryClearance,
+    )
+    base.offsetX += summaryInset
     baseTransformRef.current = base
     const offsetX = bounds.width / 2 + (base.offsetX - bounds.width / 2) * zoom + panRef.current.x
     const offsetY = bounds.height / 2 + (base.offsetY - bounds.height / 2) * zoom + panRef.current.y
@@ -966,24 +981,23 @@ export function RoomCanvas({
       })
       return
     }
-    const halfWidth = (item.rotationDeg % 180 === 0 ? item.widthCm : item.depthCm) / 2
-    const halfDepth = (item.rotationDeg % 180 === 0 ? item.depthCm : item.widthCm) / 2
-    const position = {
-      x: Math.max(halfWidth, Math.min(room.widthCm - halfWidth, Math.round(rawX / snapStep) * snapStep)),
-      y: Math.max(halfDepth, Math.min(room.depthCm - halfDepth, Math.round(rawY / snapStep) * snapStep)),
+    const target = {
+      x: Math.round(rawX / snapStep) * snapStep,
+      y: Math.round(rawY / snapStep) * snapStep,
     }
-    const guides: { x?: number; y?: number } = {}
     const nearby = furniture.filter((other) => other.id !== item.id)
-    const alignedX = nearby.find((other) => Math.abs(position.x - other.position.x) <= 5)
-    const alignedY = nearby.find((other) => Math.abs(position.y - other.position.y) <= 5)
-    if (alignedX) {
-      position.x = alignedX.position.x
-      guides.x = alignedX.position.x
-    }
-    if (alignedY) {
-      position.y = alignedY.position.y
-      guides.y = alignedY.position.y
-    }
+    const alignedX = nearby.find((other) => Math.abs(target.x - other.position.x) <= 5)
+    const alignedY = nearby.find((other) => Math.abs(target.y - other.position.y) <= 5)
+    if (alignedX) target.x = alignedX.position.x
+    if (alignedY) target.y = alignedY.position.y
+    const position = clampFurniturePositionToRoom(
+      { ...item, position: drag.lastPosition },
+      room,
+      target,
+    )
+    const guides: { x?: number; y?: number } = {}
+    if (alignedX && position.x === target.x) guides.x = alignedX.position.x
+    if (alignedY && position.y === target.y) guides.y = alignedY.position.y
     drag.lastPosition = position
     if (scheduledDraw.current !== null) cancelAnimationFrame(scheduledDraw.current)
     scheduledDraw.current = requestAnimationFrame(() => {

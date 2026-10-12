@@ -12,6 +12,7 @@ import type {
 import { getLibraryDefinition } from '../domain/library'
 import { clampDoorSwingAngle, clampOpeningOffset, createOpening, validateOpening } from '../domain/openings'
 import { polygonBounds } from '../domain/polygon'
+import { clampFurniturePositionToRoom } from '../domain/furniture-placement'
 import {
   insertCorner,
   moveCorner,
@@ -319,13 +320,22 @@ export const useEditorStore = create<EditorState>()(persist((set, get) => {
       const clean: Partial<FurnitureItem> = { ...changes }
       if (clean.widthCm !== undefined && !(clean.widthCm >= 5)) delete clean.widthCm
       if (clean.depthCm !== undefined && !(clean.depthCm >= 5)) delete clean.depthCm
+      if (clean.position) {
+        const targetPosition = clean.position
+        clean.position = clampFurniturePositionToRoom(
+          { ...existing, ...clean, position: existing.position },
+          state.room,
+          targetPosition,
+        )
+      }
       commit({ furniture: state.furniture.map((item) => item.id === id ? { ...item, ...clean } : item) })
     },
     moveFurniture: (id, position) => set((state) => {
       const item = state.furniture.find((furnitureItem) => furnitureItem.id === id)
       if (!item || item.locked) return state
+      const clampedPosition = clampFurniturePositionToRoom(item, state.room, position)
       return {
-        furniture: state.furniture.map((furnitureItem) => furnitureItem.id === id ? { ...furnitureItem, position } : furnitureItem),
+        furniture: state.furniture.map((furnitureItem) => furnitureItem.id === id ? { ...furnitureItem, position: clampedPosition } : furnitureItem),
       }
     }),
     duplicateFurniture: (id) => {

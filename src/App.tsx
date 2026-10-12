@@ -32,6 +32,7 @@ import { AngleField, DoorAngleField, NumberField, TextField } from './components
 import { LeftSidebar } from './components/LeftSidebar'
 import { OptimizerDialog } from './components/OptimizerDialog'
 import { FurnitureLibraryMenu } from './components/FurnitureLibraryMenu'
+import { PlacementIssuesPanel } from './components/PlacementIssuesPanel'
 import type { Point, RestrictionZone, RoomShape, WallOpening } from './domain/models'
 import { MeasurementUnit, OptimizationGoal, RestrictionZoneKind, RoomCreationMethod, RoomShapeKind } from './domain/enums'
 import type { LengthUnit } from './domain/enums'
@@ -207,17 +208,13 @@ function App() {
         if (event.key === 'ArrowRight') position.x += step
         if (event.key === 'ArrowUp') position.y -= step
         if (event.key === 'ArrowDown') position.y += step
-        const halfWidth = (selectedFurniture.rotationDeg % 180 === 0 ? selectedFurniture.widthCm : selectedFurniture.depthCm) / 2
-        const halfDepth = (selectedFurniture.rotationDeg % 180 === 0 ? selectedFurniture.depthCm : selectedFurniture.widthCm) / 2
-        position.x = Math.max(halfWidth, Math.min(room.widthCm - halfWidth, position.x))
-        position.y = Math.max(halfDepth, Math.min(room.depthCm - halfDepth, position.y))
         updateFurniture(selectedFurniture.id, { position })
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteFurniture, duplicateFurniture, redo, room, rotateFurniture, selectFurniture, selectedFurniture, setPreview, undo, updateFurniture])
+  }, [deleteFurniture, duplicateFurniture, redo, rotateFurniture, selectFurniture, selectedFurniture, setPreview, undo, updateFurniture])
 
   const saveRoomName = () => {
     const name = roomNameDraft.trim()
@@ -636,11 +633,6 @@ function App() {
                       ]}
                       onChange={(value) => setUnit(value as LengthUnit)}
                     />
-                    {layoutViolations.length > 0 && (
-                      <span className="validation-badge" title={layoutViolations.map((violation) => violation.message).join(' ')}>
-                        <AlertTriangle size={13} /> {layoutViolations.length} issue{layoutViolations.length === 1 ? '' : 's'}
-                      </span>
-                    )}
                   </div>
                   <button className="optimize-primary optimize-canvas" onClick={openOptimizer}><WandSparkles size={16} /><span>Optimize layout</span></button>
                 </div>
@@ -660,6 +652,7 @@ function App() {
               </button>
             )}
           </div>
+          <PlacementIssuesPanel issues={layoutViolations} />
           <RoomCanvas
             unit={unit}
             zoom={zoom}
@@ -705,15 +698,15 @@ function App() {
                 <span className="preview-furniture-icon"><Grid2X2 size={21} /></span>
                 <div><strong>{selectedFurniture.name}</strong><span>{selectedFurniture.category}</span></div>
               </div>
-              <TextField key={selectedFurniture.id + selectedFurniture.name} label="Furniture name" value={selectedFurniture.name} onCommit={(name) => updateFurniture(selectedFurniture.id, { name })} />
+              <TextField key={`${selectedFurniture.id}-name`} label="Furniture name" value={selectedFurniture.name} onCommit={(name) => updateFurniture(selectedFurniture.id, { name })} />
               <p className="section-label">DIMENSIONS</p>
               <div className="property-grid">
-                <NumberField key={`width-${unit}-${selectedFurniture.widthCm}`} label="Width" valueCm={selectedFurniture.widthCm} unit={unit} onCommit={(widthCm) => updateFurniture(selectedFurniture.id, { widthCm })} />
-                <NumberField key={`depth-${unit}-${selectedFurniture.depthCm}`} label="Depth" valueCm={selectedFurniture.depthCm} unit={unit} onCommit={(depthCm) => updateFurniture(selectedFurniture.id, { depthCm })} />
-                <NumberField key={`height-${unit}-${selectedFurniture.heightCm}`} label="Height" valueCm={selectedFurniture.heightCm} unit={unit} onCommit={(heightCm) => updateFurniture(selectedFurniture.id, { heightCm })} />
-                <AngleField key={`rotation-${selectedFurniture.rotationDeg}`} value={selectedFurniture.rotationDeg} disabled={selectedFurniture.locked} onCommit={(rotationDeg) => updateFurniture(selectedFurniture.id, { rotationDeg })} />
-                <NumberField key={`x-${unit}-${selectedFurniture.position.x}`} label="X position" valueCm={selectedFurniture.position.x} unit={unit} minCm={0} disabled={selectedFurniture.locked} onCommit={(x) => updateFurniture(selectedFurniture.id, { position: { ...selectedFurniture.position, x } })} />
-                <NumberField key={`y-${unit}-${selectedFurniture.position.y}`} label="Y position" valueCm={selectedFurniture.position.y} unit={unit} minCm={0} disabled={selectedFurniture.locked} onCommit={(y) => updateFurniture(selectedFurniture.id, { position: { ...selectedFurniture.position, y } })} />
+                <NumberField key={`${selectedFurniture.id}-width`} label="Width" valueCm={selectedFurniture.widthCm} unit={unit} onCommit={(widthCm) => updateFurniture(selectedFurniture.id, { widthCm })} />
+                <NumberField key={`${selectedFurniture.id}-depth`} label="Depth" valueCm={selectedFurniture.depthCm} unit={unit} onCommit={(depthCm) => updateFurniture(selectedFurniture.id, { depthCm })} />
+                <NumberField key={`${selectedFurniture.id}-height`} label="Height" valueCm={selectedFurniture.heightCm} unit={unit} onCommit={(heightCm) => updateFurniture(selectedFurniture.id, { heightCm })} />
+                <AngleField key={`${selectedFurniture.id}-rotation`} value={selectedFurniture.rotationDeg} disabled={selectedFurniture.locked} onCommit={(rotationDeg) => updateFurniture(selectedFurniture.id, { rotationDeg })} />
+                <NumberField key={`${selectedFurniture.id}-x`} label="X position" valueCm={selectedFurniture.position.x} unit={unit} minCm={0} disabled={selectedFurniture.locked} onCommit={(x) => updateFurniture(selectedFurniture.id, { position: { ...selectedFurniture.position, x } })} />
+                <NumberField key={`${selectedFurniture.id}-y`} label="Y position" valueCm={selectedFurniture.position.y} unit={unit} minCm={0} disabled={selectedFurniture.locked} onCommit={(y) => updateFurniture(selectedFurniture.id, { position: { ...selectedFurniture.position, y } })} />
               </div>
               <div className="object-actions">
                 <button onClick={() => rotateFurniture(selectedFurniture.id, 90)} disabled={selectedFurniture.locked}><RotateCw size={15} /> Rotate 90°</button>
@@ -728,18 +721,18 @@ function App() {
           ) : selectedOpening ? (
             <div className="property-content">
               <TextField
-                key={`opening-name-${selectedOpening.id}-${getOpeningName(selectedOpening, openings)}`}
+                key={`opening-name-${selectedOpening.id}`}
                 label={selectedOpening.type === 'door' ? 'Door name' : 'Window name'}
                 value={getOpeningName(selectedOpening, openings)}
                 onCommit={(name) => updateOpening(selectedOpening.id, { name })}
               />
               <div className="property-grid opening-measurements">
-                <NumberField key={`opening-width-${selectedOpening.id}-${selectedOpening.widthCm}`} label="Width" valueCm={selectedOpening.widthCm} unit={unit} minCm={20} onCommit={(widthCm) => updateOpening(selectedOpening.id, { widthCm })} />
-                <NumberField key={`opening-height-${selectedOpening.id}-${selectedOpening.heightCm}`} label="Height" valueCm={selectedOpening.heightCm} unit={unit} minCm={20} onCommit={(heightCm) => updateOpening(selectedOpening.id, { heightCm })} />
+                <NumberField key={`opening-width-${selectedOpening.id}`} label="Width" valueCm={selectedOpening.widthCm} unit={unit} minCm={20} onCommit={(widthCm) => updateOpening(selectedOpening.id, { widthCm })} />
+                <NumberField key={`opening-height-${selectedOpening.id}`} label="Height" valueCm={selectedOpening.heightCm} unit={unit} minCm={20} onCommit={(heightCm) => updateOpening(selectedOpening.id, { heightCm })} />
                 {selectedOpening.type === 'window' && (
-                  <NumberField key={`opening-sill-${selectedOpening.id}-${selectedOpening.sillHeightCm ?? 0}`} label="Sill height" valueCm={selectedOpening.sillHeightCm ?? 90} unit={unit} minCm={0} onCommit={(sillHeightCm) => updateOpening(selectedOpening.id, { sillHeightCm })} />
+                  <NumberField key={`opening-sill-${selectedOpening.id}`} label="Sill height" valueCm={selectedOpening.sillHeightCm ?? 90} unit={unit} minCm={0} onCommit={(sillHeightCm) => updateOpening(selectedOpening.id, { sillHeightCm })} />
                 )}
-                <NumberField key={`opening-offset-${selectedOpening.id}-${selectedOpening.offsetFromStartCm}`} label="Offset" valueCm={selectedOpening.offsetFromStartCm} unit={unit} minCm={0} onCommit={(offsetFromStartCm) => updateOpening(selectedOpening.id, { offsetFromStartCm })} />
+                <NumberField key={`opening-offset-${selectedOpening.id}`} label="Offset" valueCm={selectedOpening.offsetFromStartCm} unit={unit} minCm={0} onCommit={(offsetFromStartCm) => updateOpening(selectedOpening.id, { offsetFromStartCm })} />
               </div>
               {selectedOpening.type === 'door' && (
                 <>
@@ -762,7 +755,7 @@ function App() {
                     />
                   </label>
                   <DoorAngleField
-                    key={`door-angle-${selectedOpening.id}-${selectedOpening.swingAngleDeg ?? 90}-${maxDoorSwingAngle(room, selectedOpening)}`}
+                    key={`door-angle-${selectedOpening.id}`}
                     value={selectedOpening.swingAngleDeg ?? 90}
                     max={maxDoorSwingAngle(room, selectedOpening)}
                     onCommit={(swingAngleDeg) => updateOpening(selectedOpening.id, { swingAngleDeg })}
@@ -777,14 +770,14 @@ function App() {
             </div>
           ) : selectedZone ? (
             <div className="property-content">
-              <TextField key={`zone-${selectedZone.id}-${selectedZone.name}`} label="Zone name" value={selectedZone.name} onCommit={(name) => updateZone(selectedZone.id, { name })} />
+              <TextField key={`zone-${selectedZone.id}-name`} label="Zone name" value={selectedZone.name} onCommit={(name) => updateZone(selectedZone.id, { name })} />
               <p className="room-edit-hint">Drag the zone on the canvas to move it.</p>
               <p className="section-label">ZONE BOUNDS</p>
               <div className="property-grid">
-                <NumberField key={`zone-x-${unit}-${polygonBounds(selectedZone.boundary).minX}`} label="X position" valueCm={polygonBounds(selectedZone.boundary).minX} unit={unit} minCm={0} onCommit={(x) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { x }) })} />
-                <NumberField key={`zone-y-${unit}-${polygonBounds(selectedZone.boundary).minY}`} label="Y position" valueCm={polygonBounds(selectedZone.boundary).minY} unit={unit} minCm={0} onCommit={(y) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { y }) })} />
-                <NumberField key={`zone-width-${unit}-${polygonBounds(selectedZone.boundary).maxX - polygonBounds(selectedZone.boundary).minX}`} label="Width" valueCm={polygonBounds(selectedZone.boundary).maxX - polygonBounds(selectedZone.boundary).minX} unit={unit} minCm={20} onCommit={(width) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { width }) })} />
-                <NumberField key={`zone-depth-${unit}-${polygonBounds(selectedZone.boundary).maxY - polygonBounds(selectedZone.boundary).minY}`} label="Depth" valueCm={polygonBounds(selectedZone.boundary).maxY - polygonBounds(selectedZone.boundary).minY} unit={unit} minCm={20} onCommit={(depth) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { depth }) })} />
+                <NumberField key={`zone-${selectedZone.id}-x`} label="X position" valueCm={polygonBounds(selectedZone.boundary).minX} unit={unit} minCm={0} onCommit={(x) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { x }) })} />
+                <NumberField key={`zone-${selectedZone.id}-y`} label="Y position" valueCm={polygonBounds(selectedZone.boundary).minY} unit={unit} minCm={0} onCommit={(y) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { y }) })} />
+                <NumberField key={`zone-${selectedZone.id}-width`} label="Width" valueCm={polygonBounds(selectedZone.boundary).maxX - polygonBounds(selectedZone.boundary).minX} unit={unit} minCm={20} onCommit={(width) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { width }) })} />
+                <NumberField key={`zone-${selectedZone.id}-depth`} label="Depth" valueCm={polygonBounds(selectedZone.boundary).maxY - polygonBounds(selectedZone.boundary).minY} unit={unit} minCm={20} onCommit={(depth) => updateZone(selectedZone.id, { boundary: zoneBoundaryWithBounds(selectedZone.boundary, { depth }) })} />
               </div>
               <label className="zone-hard-toggle">
                 <input type="checkbox" checked={selectedZone.hardConstraint} onChange={(event) => updateZone(selectedZone.id, { hardConstraint: event.target.checked })} />
@@ -820,9 +813,9 @@ function App() {
               </button>
               {editingRoomGeometry && <p className="room-edit-hint">Drag a corner to reshape the room. Hold Shift for 1 cm movement.</p>}
               <div className="property-grid room-dimension-fields">
-                <NumberField key={`room-width-${unit}-${room.widthCm}`} label="Width" valueCm={room.widthCm} unit={unit} minCm={100} onCommit={(widthCm) => updateRoom({ widthCm })} />
-                <NumberField key={`room-depth-${unit}-${room.depthCm}`} label="Depth" valueCm={room.depthCm} unit={unit} minCm={100} onCommit={(depthCm) => updateRoom({ depthCm })} />
-                <NumberField key={`room-height-${unit}-${room.ceilingHeightCm}`} label="Ceiling height" valueCm={room.ceilingHeightCm} unit={unit} minCm={100} onCommit={(ceilingHeightCm) => updateRoom({ ceilingHeightCm })} />
+                <NumberField key="room-width" label="Width" valueCm={room.widthCm} unit={unit} minCm={100} onCommit={(widthCm) => updateRoom({ widthCm })} />
+                <NumberField key="room-depth" label="Depth" valueCm={room.depthCm} unit={unit} minCm={100} onCommit={(depthCm) => updateRoom({ depthCm })} />
+                <NumberField key="room-height" label="Ceiling height" valueCm={room.ceilingHeightCm} unit={unit} minCm={100} onCommit={(ceilingHeightCm) => updateRoom({ ceilingHeightCm })} />
               </div>
               <div className="room-feature-section">
                 <div className="feature-heading"><p className="section-label">RESTRICTION ZONES</p><span>{zones.length}</span></div>
@@ -847,12 +840,6 @@ function App() {
                   </button>
                 ))}
               </div>
-              {layoutViolations.length > 0 && (
-                <div className="validation-list" role="status">
-                  <strong><AlertTriangle size={14} /> Placement issues ({layoutViolations.length})</strong>
-                  {layoutViolations.slice(0, 4).map((violation, index) => <p key={`${violation.itemId}-${index}`}>{violation.message}</p>)}
-                </div>
-              )}
             </div>
           )}
 

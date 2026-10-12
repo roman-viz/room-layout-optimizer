@@ -1477,6 +1477,12 @@ kbd,
     width: min(220px, calc(100% - 24px));
   }
 
+  .placement-issues {
+    top: 48px;
+    left: 12px;
+    width: min(280px, calc(100% - 24px));
+  }
+
   .mobile-actions {
     display: flex;
     flex: 0 0 56px;
@@ -2011,24 +2017,48 @@ kbd,
   background: var(--danger);
 }
 
-.validation-list {
-  margin-top: 16px;
-  padding: 10px;
+.placement-issues {
+  position: absolute;
+  z-index: 2;
+  top: 58px;
+  left: 16px;
+  width: min(320px, calc(100% - 32px));
+  padding: 9px 10px;
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
-  border-radius: 7px;
-  color: var(--danger);
-  font-size: 10px;
+  border-radius: 8px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-soft);
 }
 
-.validation-list strong {
+.placement-issues-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.placement-issues-toggle strong {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.validation-list p {
+.placement-issues-list p {
   margin: 7px 0 0;
   color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.placement-issues-list .placement-issues-more {
+  color: var(--text-muted);
 }
 
 .zone-hard-toggle {

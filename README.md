@@ -6,8 +6,8 @@ Roomize is a local-first room planner for creating room outlines, arranging furn
 
 - Create and switch between rooms. Start with a rectangular, L-shaped, angled, rounded, or semicircular room, or draw a custom outline and edit its corners later.
 - New rooms include a default door. Add and position doors and windows along room walls; configure door hinge, swing direction, and opening angle.
-- Add furniture from the library, then move, resize, rotate, duplicate, lock, rename, or remove items.
-- Add and move restriction zones. Roomize highlights invalid furniture placements and reports collision, wall, and clearance issues.
+- Add furniture from the library, then move, resize, rotate, duplicate, lock, rename, or remove items. Moving and keyboard nudging keep the whole item inside the room boundary.
+- Add and move restriction zones. Roomize highlights invalid furniture placements and shows collision, wall, and clearance issues in a collapsible panel at the top-left of the canvas.
 - Zoom and pan around the canvas, fit the room to view, and use alignment guides while arranging furniture.
 - Compare up to three distinct suggestions for each available optimization goal: balanced, natural, and maximum free space. Review the previews and apply a layout; object names are shown once in a shared legend.
 - Import and export validated Roomize JSON projects, export the room plan as PNG, and print the plan.
